@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>El ñeque de Gamboa</title>
+<meta charset='utf-8'>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no'>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link rel='stylesheet' href='styles.css' />
+<link href='https://fonts.googleapis.com/css2?family=Merriweather&display=swap' rel='stylesheet'>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.6.0/mapbox-gl.css' rel='stylesheet'>
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.6.0/mapbox-gl.js'></script>
+</head>
+
+<body>
+<div id='map'></div>
+<div id='infoText'><b>El ñeque de Gamboa.</b> De enero a marzo de 2015, Yaguará le siguió los pasos a un ñeque macho, nombrado Mr Gambo, al borde del Parque Nacional Soberanía y durante sus frecuentes incursiones en las áreas residenciales de Gamboa. Mr Gamboa es uno de los 50000 ñeques que se estiman aún residen en los bosques protectores del Canal de Panamá. Leer más...</div>
+<div id='counterText'><span>Día: </span><span id='counter'>1</span></div>
+
+<script>
+	const counter = document.getElementById('counter');
+
+	mapboxgl.accessToken = 'pk.eyJ1IjoicmFmZm1hcmVzIiwiYSI6ImNqOGYwdXd6YTE0ZnczMm1uMTF0NzZnbDYifQ.apQdLo_KQAc1jDQIKKTDHQ';
+	const map = new mapboxgl.Map({
+		container: 'map',
+		center: [-79.695916, 9.117467],
+		zoom: 10,
+		pitch: 0,
+		bearing: 0,
+		style: 'mapbox://styles/raffmares/ckw3xm1sw01l914nu06asqu3r',
+		attributionControl: false
+	});
+	map.addControl(new mapboxgl.AttributionControl({
+		'compact': true
+	}));
+
+	map.on('load', async () => {
+		map.flyTo({
+			zoom: 16.2,
+			pitch: 72,
+			bearing: 325,
+			speed: 0.2
+		});
+		// fetch the JSON here so we can parse and use it separately from GL JS's use in the added source
+		const response = await fetch('./test.geojson');
+		const data = await response.json();
+		// save full coordinate list for later
+		const coordinates = data.features[0].geometry.coordinates;
+		const coordsLength = coordinates.length;
+		// start by showing only the first 10 coordinates
+		data.features[0].geometry.coordinates = [coordinates[0]];
+		for (let i = 1; i < 20; i++) {
+			data.features[0].geometry.coordinates.push(coordinates[i]);
+		}
+		map.addSource('track', {
+			'type': 'geojson',
+			'lineMetrics': true,
+			'data': data,
+		});
+		map.addLayer({
+			'id': 'track',
+			'type': 'line',
+			'source': 'track',
+			'layout': {
+				'line-join': 'round',
+				'line-cap': 'round'
+			},
+			'paint': {
+				'line-width': 4,
+				'line-gradient': [
+					'interpolate',
+					['linear'],
+					['line-progress'],
+					0, 'rgba(255, 175, 0, 0.1)',
+					1, 'rgba(255, 175, 0, 1)'
+				],
+				'line-blur': 1
+			}
+		});
+		// on a regular basis add coordinates from the saved list, remove first, and update the map
+		let i = 0;
+		let displayTime = 0
+		const timer = setInterval(() => {
+			if (i < coordsLength) {
+				data.features[0].geometry.coordinates.push(coordinates[i]);
+				data.features[0].geometry.coordinates.shift();
+				map.getSource('track').setData(data);
+				displayTime = Math.round(i/10 + 1);
+				counter.textContent = displayTime;
+				i++;
+			} else {
+				window.clearInterval(timer);
+			}
+		}, 5);
+	});
+
+</script>
+
+</body>
+</html>
