@@ -57,6 +57,15 @@
 			'lineMetrics': true,
 			'data': data,
 		});
+		// wait until desired zoom level reached before adding and animating track
+		let zoom = 10;
+		const sleep = (ms) => {
+			 return new Promise(resolve => setTimeout(resolve, ms));
+		}
+		while (zoom < 15) {
+			zoom = map.getZoom();
+			await sleep(1000);
+		}
 		map.addLayer({
 			'id': 'track',
 			'type': 'line',
@@ -79,7 +88,7 @@
 		});
 		// on a regular basis add coordinates from the saved list, remove first, and update the map
 		let i = 0;
-		let displayTime = 0
+		let displayTime = 0;
 		const timer = setInterval(() => {
 			if (i < coordsLength) {
 				data.features[0].geometry.coordinates.push(coordinates[i]);
